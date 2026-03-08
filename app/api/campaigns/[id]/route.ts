@@ -45,10 +45,10 @@ export async function GET(
     // Calculate stats
     const stats = {
       total: campaign.logs.length,
-      sent: campaign.logs.filter((l) => l.status === "SENT").length,
-      failed: campaign.logs.filter((l) => l.status === "FAILED").length,
-      pending: campaign.logs.filter((l) => l.status === "PENDING").length,
-      skipped: campaign.logs.filter((l) => l.status === "SKIPPED").length,
+      sent: campaign.logs.filter((l: any) => l.status === "SENT").length,
+      failed: campaign.logs.filter((l: any) => l.status === "FAILED").length,
+      pending: campaign.logs.filter((l: any) => l.status === "PENDING").length,
+      skipped: campaign.logs.filter((l: any) => l.status === "SKIPPED").length,
     }
 
     return NextResponse.json({ campaign, stats })

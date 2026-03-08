@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     console.log('QR data received:', qrData)
 
     // Check if instance is already connected
-    if (qrData.instance?.state === 'open') {
+    if ((qrData as any).instance?.state === 'open') {
       return NextResponse.json(
         { error: "Instance already connected", alreadyConnected: true },
         { status: 409 }
