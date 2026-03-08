@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  emailVerified Boolean   @default(false)
+  name         String
+  image        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  role         Role       @default(CLIENT)
+
+  // Better Auth relations
+  accounts     Account[]
+  sessions     Session[]
+
+  // App relations
+  instance     Instance?
+  contacts     Contact[]
+  campaigns    Campaign[]
+}
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  accountId         String
+  providerId        String
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  expiresAt         DateTime?
+  password          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+model Instance {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evolutionName String         @unique  // e.g. "user_abc123" — the instance name in Evolution API
+  status        InstanceStatus @default(DISCONNECTED)
+  phone         String?        // populated once connected
+  profileName   String?        // WhatsApp profile name
+  profilePictureUrl String?    // WhatsApp profile picture URL
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum InstanceStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+}
+
+model Contact {
+  id           String       @id @default(cuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String       // E.164 format, e.g. +358401234567
+  optedOut     Boolean      @default(false)
+  tags         String[]     @default([])
+  createdAt    DateTime     @default(now())
+
+  messagesSent MessageLog[]
+
+  @@unique([userId, phone])
+  @@index([userId])
+}
+
+model Campaign {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  messageText     String
+  mediaData       Bytes?         // binary media file stored in database
+  mediaFilename   String?        // original filename
+  mediaMimeType   String?        // MIME type (e.g. application/pdf, image/jpeg)
+  mediaType       String?        // "document", "image", "video"
+  status          CampaignStatus @default(DRAFT)
+  scheduledAt     DateTime?      // null = send now when started
+  throttleMin     Int            @default(8)   // seconds min delay between messages
+  throttleMax     Int            @default(25)  // seconds max delay
+  dailyLimit      Int            @default(200) // max sends per day per instance
+  createdAt       DateTime       @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  logs            MessageLog[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum CampaignStatus {
+  DRAFT
+  QUEUED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+model MessageLog {
+  id         String        @id @default(cuid())
+  campaignId String
+  campaign   Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  status     MessageStatus @default(PENDING)
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([campaignId])
+  @@index([status])
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED  // opted out
+}

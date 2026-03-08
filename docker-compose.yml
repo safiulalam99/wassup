@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wazzup
+      POSTGRES_USER: wazzup
+      POSTGRES_PASSWORD: change_me_strong_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wazzup"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass change_me_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7-jammy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: wazzup
+      MONGO_INITDB_ROOT_PASSWORD: change_me_strong_password
+      MONGO_INITDB_DATABASE: evolution
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  evolution-api:
+    image: evolution-api-v2-fixed:latest
+    environment:
+      SERVER_URL: http://localhost:8080
+      AUTHENTICATION_API_KEY: change_me_evolution_key
+      DATABASE_ENABLED: true
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://wazzup:change_me_strong_password@postgres:5432/evolution?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      DATABASE_SAVE_DATA_INSTANCE: true
+      DATABASE_SAVE_DATA_NEW_MESSAGE: true
+      DATABASE_SAVE_MESSAGE_UPDATE: true
+      DATABASE_SAVE_DATA_CONTACTS: true
+      DATABASE_SAVE_DATA_CHATS: true
+      CACHE_REDIS_ENABLED: false
+      CACHE_LOCAL_ENABLED: false
+      WEBHOOK_GLOBAL_URL: http://host.docker.internal:3004/api/webhooks/evolution
+      WEBHOOK_GLOBAL_ENABLED: true
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: false
+      WEBHOOK_EVENTS_APPLICATION_STARTUP: false
+      WEBHOOK_EVENTS_QRCODE_UPDATED: true
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: true
+      WEBHOOK_EVENTS_CONTACTS_SET: true
+      WEBHOOK_EVENTS_CONTACTS_UPSERT: true
+      WEBHOOK_EVENTS_CONTACTS_UPDATE: true
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: true
+      WEBHOOK_EVENTS_MESSAGES_UPDATE: true
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongodb_data:
+  evolution_instances:
