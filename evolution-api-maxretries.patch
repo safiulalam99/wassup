@@ -1,0 +1,11 @@
+--- a/src/api/integrations/channel/whatsapp/whatsapp.baileys.service.ts
++++ b/src/api/integrations/channel/whatsapp/whatsapp.baileys.service.ts
+@@ -2397,7 +2397,7 @@
+
+           if (!findMessage?.id) {
+             this.logger.verbose(
+-              `Original message not found for update after ${maxRetries} retries. Skipping...`
++              `Original message not found for update. Skipping...`
+             );
+             continue;
+           }

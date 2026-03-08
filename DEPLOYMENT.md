@@ -1,43 +1,35 @@
 # Deployment Guide for Wazzup
 
+## 🆕 New Server? Start Here First!
+
+**If you have a brand new VPS that hasn't been configured yet**, follow [SERVER-SETUP.md](SERVER-SETUP.md) first. It covers:
+- Initial server hardening (SSH keys, firewall, non-root user)
+- Docker installation
+- Domain DNS configuration
+- SSL certificate setup
+- Security best practices
+
+**Already have a configured server with Docker?** Continue with the sections below.
+
+---
+
 ## Prerequisites
-- A VPS (Hetzner, DigitalOcean, AWS EC2, etc.) with:
-  - Ubuntu 22.04 or later
-  - At least 2GB RAM, 2 vCPUs
-  - 20GB+ storage
-- Domain name pointed to your VPS IP
+- Configured VPS with Docker & Docker Compose installed
+- Non-root user with sudo and docker group access
+- (Optional) Domain name with DNS pointed to server
 - SSH access to the server
 
 ## VPS Deployment (Recommended)
 
-### Step 1: Server Setup
+### Step 1: Clone & Configure
 
 ```bash
 # SSH into your server
-ssh root@your-server-ip
+ssh wazzup@your-server-ip  # Use your configured user
 
-# Update system
-apt update && apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-
-# Install Docker Compose
-apt install docker-compose-plugin -y
-
-# Create app user
-adduser --disabled-password --gecos "" wazzup
-usermod -aG docker wazzup
-su - wazzup
-```
-
-### Step 2: Clone & Configure
-
-```bash
-# Clone your repository
-git clone <your-repo-url> wazzup
-cd wazzup
+# Clone your repository (or pull latest if already cloned)
+git clone <your-repo-url> wazzup && cd wazzup
+# OR: cd wazzup && git pull
 
 # Create production environment file
 cp .env.production.example .env.production
@@ -45,19 +37,14 @@ cp .env.production.example .env.production
 # Edit environment variables
 nano .env.production
 # Set all CHANGE_ME_* values with strong passwords/secrets
+# Use: openssl rand -base64 32 to generate secure passwords
+
+# Update nginx.conf with your domain
+nano nginx.conf
+# Replace 'your-domain.com' with your actual domain
 ```
 
-### Step 3: Build Evolution API Image
-
-```bash
-# Evolution API needs to be built separately (custom image)
-# Assuming you have evolution-api-v2-fixed:latest image
-# If not, you need to build it from your Evolution API source
-docker pull atendai/evolution-api:latest
-docker tag atendai/evolution-api:latest evolution-api-v2-fixed:latest
-```
-
-### Step 4: Deploy
+### Step 2: Deploy
 
 ```bash
 # Build and start all services
@@ -73,7 +60,7 @@ docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
 docker compose -f docker-compose.prod.yml logs -f app
 ```
 
-### Step 5: SSL Setup (Let's Encrypt)
+### Step 3: SSL Setup (Let's Encrypt)
 
 ```bash
 # Install certbot
@@ -91,7 +78,11 @@ nano nginx.conf
 docker compose -f docker-compose.prod.yml restart nginx
 ```
 
-### Step 6: Maintenance Commands
+### Step 4: Verify & Access
+
+Visit `https://your-domain.com` and create your account!
+
+### Step 5: Maintenance Commands
 
 ```bash
 # View logs

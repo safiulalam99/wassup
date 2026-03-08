@@ -31,7 +31,7 @@ services:
       - wazzup-network
 
   evolution-api:
-    image: evolution-api-v2-fixed:latest
+    image: atendai/evolution-api:v2.1.1
     environment:
       SERVER_URL: ${EVOLUTION_SERVER_URL}
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
