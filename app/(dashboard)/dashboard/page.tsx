@@ -112,7 +112,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-2.5">
-            {recentCampaigns.map((c) => (
+            {recentCampaigns.map((c: any) => (
               <Link
                 key={c.id}
                 href={`/dashboard/campaigns/${c.id}`}
